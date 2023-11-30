@@ -1,0 +1,57 @@
+advent_of_code::solution!(2);
+
+fn area(l: u32, w: u32, h: u32) -> u32 {
+    let (s1, s2, s3) = (l * w, w * h, h * l);
+    let surface = 2 * s1 + 2 * s2 + 2 * s3;
+    let extra = s1.min(s2).min(s3);
+    surface + extra
+}
+
+fn ribbon(l: u32, w: u32, h: u32) -> u32 {
+    let (f1, f2, f3) = (2 * l + 2 * w, 2 * w + 2 * h, 2 * h + 2 * l);
+    let min_perimeter = f1.min(f2).min(f3);
+    min_perimeter + l * w * h
+}
+
+pub fn part_one(input: &str) -> Option<u32> {
+    let mut total = 0;
+    input.lines().for_each(|line| {
+        let sides: Vec<&str> = line.split('x').collect();
+        let sides: Vec<u32> = sides
+            .iter()
+            .map(|x| x.parse().expect("Should be ints"))
+            .collect();
+        total += area(sides[0], sides[1], sides[2]);
+    });
+    Some(total)
+}
+
+pub fn part_two(input: &str) -> Option<u32> {
+    let mut total = 0;
+    input.lines().for_each(|line| {
+        let sides: Vec<&str> = line.split('x').collect();
+        let sides: Vec<u32> = sides
+            .iter()
+            .map(|x| x.parse().expect("Should be ints"))
+            .collect();
+        total += ribbon(sides[0], sides[1], sides[2]);
+    });
+    Some(total)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part_one() {
+        let result = part_one(&advent_of_code::template::read_file("examples", DAY));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let result = part_two(&advent_of_code::template::read_file("examples", DAY));
+        assert_eq!(result, None);
+    }
+}
