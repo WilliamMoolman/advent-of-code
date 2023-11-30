@@ -1,6 +1,9 @@
 {
     "name": "rust-devcontainer",
     "image": "mcr.microsoft.com/devcontainers/rust:latest",
-    "postCreateCommand": "rustc --version",
-    "remoteUser": "vscode"
+    "postCreateCommand": "rustc --version && cargo install aoc-cli",
+    "remoteUser": "vscode",
+    "mounts": [
+        "source=/home/william/.adventofcode.session,target=/home/vscode/.adventofcode.session,type=bind,consistency=cached"
+      ]
 }
