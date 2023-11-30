@@ -1,6 +1,7 @@
 advent_of_code::solution!(2);
+use regex::Regex;
 
-fn area(l: u32, w: u32, h: u32) -> u32 {
+fn wrapping(l: u32, w: u32, h: u32) -> u32 {
     let (s1, s2, s3) = (l * w, w * h, h * l);
     let surface = 2 * s1 + 2 * s2 + 2 * s3;
     let extra = s1.min(s2).min(s3);
@@ -13,30 +14,37 @@ fn ribbon(l: u32, w: u32, h: u32) -> u32 {
     min_perimeter + l * w * h
 }
 
+fn input_items(input: &str) -> Vec<(u32, u32, u32)> {
+    let re = Regex::new(r"(\d+)x(\d+)x(\d+)").unwrap();
+    input
+        .lines()
+        .map(|line| {
+            let sides = re.captures(line).unwrap();
+            (
+                sides[1].parse().unwrap(),
+                sides[2].parse().unwrap(),
+                sides[3].parse().unwrap(),
+            )
+        })
+        .collect()
+}
+
 pub fn part_one(input: &str) -> Option<u32> {
-    let mut total = 0;
-    input.lines().for_each(|line| {
-        let sides: Vec<&str> = line.split('x').collect();
-        let sides: Vec<u32> = sides
+    Some(
+        input_items(input)
             .iter()
-            .map(|x| x.parse().expect("Should be ints"))
-            .collect();
-        total += area(sides[0], sides[1], sides[2]);
-    });
-    Some(total)
+            .map(|(l, w, h)| wrapping(*l, *w, *h))
+            .sum(),
+    )
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let mut total = 0;
-    input.lines().for_each(|line| {
-        let sides: Vec<&str> = line.split('x').collect();
-        let sides: Vec<u32> = sides
+    Some(
+        input_items(input)
             .iter()
-            .map(|x| x.parse().expect("Should be ints"))
-            .collect();
-        total += ribbon(sides[0], sides[1], sides[2]);
-    });
-    Some(total)
+            .map(|(l, w, h)| ribbon(*l, *w, *h))
+            .sum(),
+    )
 }
 
 #[cfg(test)]
