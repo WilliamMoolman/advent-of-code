@@ -1,33 +1,23 @@
 advent_of_code::solution!(1);
 
-use regex::Regex;
+use fancy_regex::Regex;
 
 fn get_first_last_num(line: &str) -> u32 {
     let re = Regex::new(r"(\d)").unwrap();
     let digits: Vec<&str> = re
         .captures_iter(line)
-        .map(|c| c.extract::<1>().1[0])
+        .map(|c| c.unwrap().get(1).unwrap().as_str())
         .collect();
     let num_str = format!("{}{}", digits.first().unwrap(), digits.last().unwrap());
     num_str.parse().unwrap()
 }
 
 fn get_first_last_num_with_words(line: &str) -> u32 {
-    let re = Regex::new(r"(\d|one|two|three|four|five|six|seven|eight|nine)").unwrap();
+    let re = Regex::new(r"(?=(\d|one|two|three|four|five|six|seven|eight|nine))").unwrap();
 
-    // Account for overlapping matches. Default regex crate does not support look-ahead
-    let l = String::from(line)
-        .replace("oneight", "oneeight")
-        .replace("twone", "twoone")
-        .replace("threeight", "threeeight")
-        .replace("fiveight", "fiveeight")
-        .replace("sevenine", "sevennine")
-        .replace("eightwo", "eighttwo")
-        .replace("eighthree", "eightthree")
-        .replace("nineight", "nineeight");
     let digits: Vec<u32> = re
-        .captures_iter(&l)
-        .map(|c| c.extract::<1>().1[0])
+        .captures_iter(line)
+        .map(|c| c.unwrap().get(1).unwrap().as_str())
         .map(|c| match c {
             "one" | "1" => 1,
             "two" | "2" => 2,
