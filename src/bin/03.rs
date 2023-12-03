@@ -1,118 +1,83 @@
 advent_of_code::solution!(3);
 
-fn contains_symbol(c: char) -> bool {
-    c != '.' && !c.is_digit(10)
+fn contains_symbol(char_slice: Vec<char>) -> bool {
+    let mut contains = false;
+    for c in char_slice {
+        contains |= c != '.' && !c.is_digit(10)
+    }
+    contains
 }
 
-fn check_number(lines: &Vec<&str>, i: usize, start: usize, end: usize) -> Option<u32> {
+fn symbol_surrounding(lines: &Vec<Vec<char>>, i: usize, start: usize, end: usize) -> bool {
     let start_idx = if start == 0 { 0 } else { start - 1 };
     let end_idx = (end + 1).min(lines[0].len());
     let mut add = false;
 
     // Check above
     if i != 0 {
-        add |= lines[i - 1][start_idx..end_idx].contains(contains_symbol);
+        add |= contains_symbol(lines[i - 1][start_idx..end_idx].to_vec());
     }
     // Check mid
-    add |= lines[i][start_idx..end_idx].contains(contains_symbol);
+    add |= contains_symbol(lines[i][start_idx..end_idx].to_vec());
 
     // Check after
     if i != lines.len() - 1 {
-        add |= lines[i + 1][start_idx..end_idx].contains(contains_symbol);
+        add |= contains_symbol(lines[i + 1][start_idx..end_idx].to_vec());
     }
 
-    if add {
-        let x = lines[i][start..end].parse::<u32>().unwrap();
-        return Some(x);
-    }
-    None
-}
-pub fn part_one(input: &str) -> Option<u32> {
-    let lines: Vec<&str> = input.lines().collect();
-    let mut num_start = 0;
-    let mut num_length = 0;
-    let mut sum: u32 = 0;
-    for i in 0..lines.len() {
-        for (c_idx, c) in lines[i].chars().enumerate() {
-            match (c.is_digit(10), num_length) {
-                (true, 0) => {
-                    num_start = c_idx;
-                    num_length = 1
-                } // New number
-                (true, _) => num_length += 1, // Mid number
-                (false, 0) => continue,       // Not in number
-                (false, _) => {
-                    // End of number
-                    if let Some(num) = check_number(&lines, i, num_start, num_start + num_length) {
-                        sum += num;
-                    }
-                    num_length = 0;
-                }
-            }
-        }
-
-        if num_length != 0 {
-            if let Some(num) = check_number(&lines, i, num_start, num_start + num_length) {
-                sum += num;
-            }
-            num_length = 0;
-        }
-    }
-    Some(sum)
+    add
 }
 
-fn extract_num(lines: &Vec<&str>, i: usize, c_idx: usize) -> u32 {
-    let mut nforward: Vec<char> = vec![lines[i].chars().nth(c_idx).unwrap()];
-    for j in (c_idx + 1)..lines[0].len() {
-        let c = lines[i].chars().nth(j).unwrap();
+fn extract_num(line: &Vec<char>, c_idx: usize) -> (u32, usize) {
+    let mut right_digits = vec![line[c_idx]];
+    for j in (c_idx + 1)..line.len() {
+        let c = line[j];
         if c.is_digit(10) {
-            nforward.push(c);
+            right_digits.push(c);
         } else {
             break;
         }
     }
-    let mut n_reverse: Vec<char> = Vec::new();
+    let mut left_digits: Vec<char> = Vec::new();
     for j in (0..c_idx).rev() {
-        let c = lines[i].chars().nth(j).unwrap();
+        let c = line[j];
         if c.is_digit(10) {
-            n_reverse.push(c);
+            left_digits.push(c);
         } else {
             break;
         }
     }
-    n_reverse.reverse();
-    n_reverse.extend(nforward);
-    String::from(n_reverse.into_iter().collect::<String>())
+    left_digits.reverse();
+    left_digits.extend(right_digits);
+    let num = String::from(left_digits.into_iter().collect::<String>())
         .parse()
-        .unwrap()
+        .unwrap();
+    (num, num.to_owned().to_string().len())
 }
 
-fn extract_nums(lines: &Vec<&str>, i: usize, c_idx: usize, nums: &mut Vec<u32>) {
-    let l = if c_idx != 0 {
-        lines[i].chars().nth(c_idx - 1).unwrap()
-    } else {
-        'x'
-    };
-    let m = lines[i].chars().nth(c_idx).unwrap();
+fn extract_nums(lines: &Vec<Vec<char>>, i: usize, c_idx: usize, nums: &mut Vec<u32>) {
+    let l = if c_idx != 0 { lines[i][c_idx - 1] } else { 'x' };
+    let m = lines[i][c_idx];
     let r = if c_idx != lines[0].len() - 1 {
-        lines[i].chars().nth(c_idx + 1).unwrap()
+        lines[i][c_idx + 1]
     } else {
         'x'
     };
 
     match (l.is_digit(10), m.is_digit(10), r.is_digit(10)) {
-        (_, true, _) => nums.push(extract_num(lines, i, c_idx)),
-        (true, false, true) => {
-            nums.push(extract_num(lines, i, c_idx - 1));
-            nums.push(extract_num(lines, i, c_idx + 1))
+        (_, true, _) => nums.push(extract_num(&lines[i], c_idx).0),
+        (left, false, right) => {
+            if left {
+                nums.push(extract_num(&lines[i], c_idx - 1).0)
+            };
+            if right {
+                nums.push(extract_num(&lines[i], c_idx + 1).0)
+            };
         }
-        (true, _, false) => nums.push(extract_num(lines, i, c_idx - 1)),
-        (false, _, true) => nums.push(extract_num(lines, i, c_idx + 1)),
-
-        (false, false, false) => {}
     }
 }
-fn handle_gear(lines: &Vec<&str>, i: usize, c_idx: usize) -> Option<u32> {
+
+fn handle_gear(lines: &Vec<Vec<char>>, i: usize, c_idx: usize) -> Option<u32> {
     let mut nums = Vec::new();
     if i != 0 {
         extract_nums(lines, i - 1, c_idx, &mut nums)
@@ -128,12 +93,36 @@ fn handle_gear(lines: &Vec<&str>, i: usize, c_idx: usize) -> Option<u32> {
 
     None
 }
+
+pub fn part_one(input: &str) -> Option<u32> {
+    let lines: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
+    let mut sum: u32 = 0;
+    for i in 0..lines.len() {
+        let mut c_idx = 0;
+        while c_idx < lines[i].len() {
+            let c = lines[i][c_idx];
+
+            if c.is_digit(10) {
+                let (num, length) = extract_num(&lines[i], c_idx);
+                if symbol_surrounding(&lines, i, c_idx, c_idx + length) {
+                    sum += num;
+                }
+
+                c_idx += length;
+            } else {
+                c_idx += 1;
+            }
+        }
+    }
+    Some(sum)
+}
+
 pub fn part_two(input: &str) -> Option<u32> {
-    let lines: Vec<&str> = input.lines().collect();
+    let lines: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
     let mut sum = 0;
     for i in 0..lines.len() {
-        for (c_idx, c) in lines[i].chars().enumerate() {
-            if c == '*' {
+        for (c_idx, c) in lines[i].iter().enumerate() {
+            if c == &'*' {
                 if let Some(ratio) = handle_gear(&lines, i, c_idx) {
                     sum += ratio;
                 }
