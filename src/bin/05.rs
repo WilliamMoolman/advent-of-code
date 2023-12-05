@@ -1,3 +1,5 @@
+use indicatif::ProgressIterator;
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 advent_of_code::solution!(5);
@@ -47,6 +49,15 @@ impl Converter {
         }
         value
     }
+
+    fn convert_range(&self, start: u32, end: u32) -> Vec<i64> {
+        (start..end)
+            .progress()
+            .map(|value| self.convert(value.try_into().unwrap()))
+            .collect()
+    }
+
+    // fn convert_list(&self)
 }
 
 pub fn part_one(input: &str) -> Option<i64> {
@@ -91,7 +102,7 @@ pub fn part_two(input: &str) -> Option<i64> {
     let mut lines = input.lines();
     let mut first_line = lines.next().unwrap().split_ascii_whitespace();
     first_line.next();
-    let seeds: Vec<i64> = first_line
+    let seeds: Vec<u32> = first_line
         .map(|x| x.parse().expect(&format!("These should be nums {x}")))
         .collect();
     lines.next();
@@ -108,9 +119,9 @@ pub fn part_two(input: &str) -> Option<i64> {
     }
 
     seeds
-        .chunks(2)
-        .flat_map(|chunk: &[i64]| chunk[0]..chunk[0] + chunk[1])
-        .map(|seed| hm.get("seed-to-soil").unwrap().convert(seed))
+        .par_chunks(2)
+        .flat_map(|chunk: &[u32]| chunk[0]..chunk[0] + chunk[1])
+        .map(|seed| hm.get("seed-to-soil").unwrap().convert(seed as i64))
         .map(|soil| hm.get("soil-to-fertilizer").unwrap().convert(soil))
         .map(|fertilizer| hm.get("fertilizer-to-water").unwrap().convert(fertilizer))
         .map(|water| hm.get("water-to-light").unwrap().convert(water))
