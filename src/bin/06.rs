@@ -1,5 +1,7 @@
 advent_of_code::solution!(6);
 
+use advent_of_code::utils::LinesExt;
+
 /*
 Distance - d, Time - t, Charge up Time - n, Record - R
 d(n) = (t-n)*n
@@ -29,17 +31,13 @@ fn get_margin(time: u64, record: u64) -> u64 {
 
 pub fn part_one(input: &str) -> Option<u64> {
     let mut lines = input.lines();
-    let total = lines
-        .next()
-        .unwrap()
-        .split_ascii_whitespace()
-        .zip(lines.next().unwrap().split_ascii_whitespace())
-        .map(|(time, record)| {
-            if time.chars().nth(0).unwrap().is_alphabetic() {
-                return 1;
-            };
-            get_margin(time.parse().unwrap(), record.parse().unwrap())
-        })
+    let mut lines = lines.numbers();
+    let times = lines.next().unwrap();
+    let records = lines.next().unwrap();
+    let total = times
+        .iter()
+        .zip(records)
+        .map(|(time, record)| get_margin(*time, record))
         .product();
 
     Some(total)
