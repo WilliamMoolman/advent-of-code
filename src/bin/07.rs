@@ -1,43 +1,42 @@
 advent_of_code::solution!(7);
 
 use std::cmp::Ordering::*;
+
+#[derive(PartialEq, PartialOrd)]
 struct Cards(u32, u32, u32, u32, u32);
 
-impl PartialEq for Cards {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-            && self.1 == other.1
-            && self.2 == other.2
-            && self.3 == other.3
-            && self.4 == other.4
-    }
-}
-
-impl PartialOrd for Cards {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let cards_other = vec![other.0, other.1, other.2, other.3, other.4];
-        let cards = vec![self.0, self.1, self.2, self.3, self.4];
-
-        cards
-            .iter()
-            .zip(cards_other)
-            .find_map(|(&a, b)| match a.cmp(&b) {
-                std::cmp::Ordering::Equal => None,
-                x => Some(x),
-            })
-    }
-}
+#[derive(PartialEq, PartialOrd)]
 enum Hands {
-    Five(Cards, u32),
-    Four(Cards, u32),
-    FullHouse(Cards, u32),
-    Three(Cards, u32),
-    TwoPairs(Cards, u32),
-    Pair(Cards, u32),
+    // Ordering from low to high due to rust discriminants
     HighCard(Cards, u32),
+    Pair(Cards, u32),
+    TwoPairs(Cards, u32),
+    Three(Cards, u32),
+    FullHouse(Cards, u32),
+    Four(Cards, u32),
+    Five(Cards, u32),
 }
 
 impl Hands {
+    fn from_card_counts(counts: &[u32], cards: Cards, bid: u32) -> Hands {
+        if counts.iter().max().unwrap() == &5 {
+            Hands::Five(cards, bid)
+        } else if counts.iter().max().unwrap() == &4 {
+            Hands::Four(cards, bid)
+        } else if counts.iter().filter(|&&x| x > 0).count() == 2 {
+            Hands::FullHouse(cards, bid)
+        } else if counts.iter().max().unwrap() == &3 {
+            Hands::Three(cards, bid)
+        } else if counts.iter().filter(|&&x| x > 0).count() == 3 {
+            // 11223 or 12233 or 111233
+            Hands::TwoPairs(cards, bid)
+        } else if counts.iter().filter(|&&x| x > 0).count() == 4 {
+            Hands::Pair(cards, bid)
+        } else {
+            Hands::HighCard(cards, bid)
+        }
+    }
+
     fn from_line(line: &str) -> Hands {
         let (line, bid) = line.split_once(' ').unwrap();
         let bid = bid.parse::<u32>().unwrap();
@@ -55,26 +54,14 @@ impl Hands {
             })
             .collect();
 
-        let mut card_counts: Vec<u32> = vec![0; 14];
+        let mut card_counts: [u32; 14] = [0; 14];
         cards.iter().for_each(|&c| card_counts[c as usize - 1] += 1);
 
-        // Check for 5 of a kind
-        if card_counts.iter().max().unwrap() == &5 {
-            Hands::Five(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if card_counts.iter().max().unwrap() == &4 {
-            Hands::Four(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if card_counts.iter().filter(|&&x| x > 0).count() == 2 {
-            Hands::FullHouse(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if card_counts.iter().max().unwrap() == &3 {
-            Hands::Three(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if card_counts.iter().filter(|&&x| x > 0).count() == 3 {
-            // 11223 or 12233 or 111233
-            Hands::TwoPairs(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if card_counts.iter().filter(|&&x| x > 0).count() == 4 {
-            Hands::Pair(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else {
-            Hands::HighCard(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        }
+        Hands::from_card_counts(
+            &card_counts,
+            Cards(cards[0], cards[1], cards[2], cards[3], cards[4]),
+            bid,
+        )
     }
     fn from_line_joker(line: &str) -> Hands {
         let (line, bid) = line.split_once(' ').unwrap();
@@ -93,28 +80,18 @@ impl Hands {
             })
             .collect();
 
-        let mut card_counts: Vec<u32> = vec![0; 15];
+        let mut card_counts: [u32; 15] = [0; 15];
         cards.iter().for_each(|&c| card_counts[c as usize] += 1);
-        let non_jokers = &card_counts[1..];
         let jokers = card_counts[0];
+        let non_jokers = &mut card_counts[1..];
+        // Heuristic: Best hand is obtained by adding joker to higher card count
+        *(non_jokers.iter_mut().max().unwrap()) += jokers;
 
-        if non_jokers.iter().max().unwrap() + jokers == 5 {
-            Hands::Five(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if non_jokers.iter().max().unwrap() + jokers == 4 {
-            Hands::Four(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if non_jokers.iter().filter(|&&x| x > 0).count() == 2 {
-            // aaabb, aabbj, abbjj, abcjj
-            Hands::FullHouse(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if non_jokers.iter().max().unwrap() + jokers == 3 {
-            Hands::Three(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if non_jokers.iter().filter(|&&x| x > 0).count() == 3 {
-            // aaddc
-            Hands::TwoPairs(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else if non_jokers.iter().filter(|&&x| x > 0).count() == 4 {
-            Hands::Pair(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        } else {
-            Hands::HighCard(Cards(cards[0], cards[1], cards[2], cards[3], cards[4]), bid)
-        }
+        Hands::from_card_counts(
+            non_jokers,
+            Cards(cards[0], cards[1], cards[2], cards[3], cards[4]),
+            bid,
+        )
     }
 
     fn bid(&self) -> u32 {
@@ -128,51 +105,8 @@ impl Hands {
             Hands::HighCard(_, bid) => *bid,
         }
     }
-
-    fn cards(&self) -> &Cards {
-        match self {
-            Hands::Five(cards, _) => cards,
-            Hands::Four(cards, _) => cards,
-            Hands::FullHouse(cards, _) => cards,
-            Hands::Three(cards, _) => cards,
-            Hands::TwoPairs(cards, _) => cards,
-            Hands::Pair(cards, _) => cards,
-            Hands::HighCard(cards, _) => cards,
-        }
-    }
-
-    fn hand_rank(&self) -> u32 {
-        match self {
-            Hands::Five(_, _) => 6,
-            Hands::Four(_, _) => 5,
-            Hands::FullHouse(_, _) => 4,
-            Hands::Three(_, _) => 3,
-            Hands::TwoPairs(_, _) => 2,
-            Hands::Pair(_, _) => 1,
-            Hands::HighCard(_, _) => 0,
-        }
-    }
 }
 
-impl PartialEq for Hands {
-    fn eq(&self, other: &Self) -> bool {
-        if self.hand_rank() != other.hand_rank() {
-            false
-        } else {
-            self.cards() == other.cards()
-        }
-    }
-}
-
-impl PartialOrd for Hands {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self.hand_rank().cmp(&other.hand_rank()) {
-            Less => Some(Less),
-            Greater => Some(Greater),
-            Equal => self.cards().partial_cmp(other.cards()),
-        }
-    }
-}
 pub fn part_one(input: &str) -> Option<u32> {
     let mut hands: Vec<Hands> = input.lines().map(Hands::from_line).collect();
     hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
