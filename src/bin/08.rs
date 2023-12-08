@@ -6,7 +6,6 @@ struct Node(String, String);
 
 impl Node {
     fn from_line<'a, 'b>(nodes: &'b mut HashMap<String, Node>, line: &str) {
-        // Line: AAA = (BBB, CCC)
         let (name, children) = line.split_once(" = ").unwrap();
         let children = children.replace('(', "").replace(')', "");
         let (lchild, rchild) = children.split_once(", ").unwrap();
@@ -15,15 +14,7 @@ impl Node {
         nodes.insert(name.to_string(), node);
     }
 
-    fn get<'g>(
-        nodes: &'g HashMap<String, Node>,
-        // gates_compute: &mut HashMap<String, u16>,
-        id: &str,
-        cmd: char,
-    ) -> &'g str {
-        // if let Ok(num) = id.parse() {
-        //     return num;
-        // }
+    fn get<'g>(nodes: &'g HashMap<String, Node>, id: &str, cmd: char) -> &'g str {
         if let Some(&Node(ref left, ref right)) = nodes.get(id) {
             return match cmd {
                 'L' => &left,
@@ -35,20 +26,10 @@ impl Node {
     }
 }
 
-fn travel_to_z(
-    start_node: &String,
-    nodes: &HashMap<String, Node>,
-    visited: &mut HashMap<(String, usize), (String, usize, u64)>,
-    cmds: &Vec<char>,
-    cmd_idx: usize,
-) -> (String, usize, u64) {
+fn travel_to_z(start_node: &String, nodes: &HashMap<String, Node>, cmds: &Vec<char>) -> u64 {
     let mut count = 0;
     let mut current_node = start_node.to_owned();
-    let mut i = cmd_idx;
-    if let Some((new, idx, length)) = visited.get(&(current_node.clone(), i)) {
-        // println!("Memoized: --> {new}");
-        return (new.to_owned(), *idx, *length);
-    }
+    let mut i = 0;
     loop {
         let cmd = cmds[i];
         i = (i + 1) % cmds.len();
@@ -56,18 +37,12 @@ fn travel_to_z(
         count += 1;
 
         if next.ends_with("Z") {
-            current_node = next;
             break;
         }
         current_node = next;
     }
 
-    visited.insert(
-        (start_node.to_owned(), cmd_idx),
-        (current_node.to_owned(), i, count),
-    );
-
-    (current_node, i, count)
+    count
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
@@ -78,19 +53,9 @@ pub fn part_one(input: &str) -> Option<u64> {
     for line in lines {
         Node::from_line(&mut nodes, line);
     }
-    let mut count = 0;
-    let mut current_node = "AAA";
-    'outer: loop {
-        for cmd in cmds.iter() {
-            let next = Node::get(&nodes, current_node, *cmd);
-            count += 1;
-            if next == "ZZZ" {
-                break 'outer;
-            }
-            current_node = next;
-        }
-    }
-    Some(count)
+    let count = travel_to_z(&"AAA".to_string(), &nodes, &cmds);
+
+    Some(count as u64)
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
@@ -102,38 +67,19 @@ pub fn part_two(input: &str) -> Option<u64> {
         Node::from_line(&mut nodes, line);
     }
 
-    // let mut total_count;
-
-    let mut current_nodes: Vec<(String, usize, u64)> = nodes
+    let current_nodes: Vec<(String, u64)> = nodes
         .keys()
         .filter(|x| x.ends_with('A'))
-        .map(|x| (x.to_owned(), 0, 0))
+        .map(|x| (x.to_owned(), 0))
         .collect();
 
-    let mut visited = HashMap::<(String, usize), (String, usize, u64)>::new();
-    // loop {
-    //     current_nodes.sort_by_key(|(_, _, x)| *x);
-    //     current_nodes = current_nodes
-    //         .iter()
-    //         .map(|(n, curr_idx, curr_count)| {
-    //             let (node, idx, count) = travel_to_z(n, &nodes, &mut visited, &cmds, *curr_idx);
-    //             // println!("{n}-->{node} in {count} @ {idx}");
-    //             (node, idx, curr_count + count)
-    //         })
-    //         .collect();
-    //     total_count = current_nodes[0].2;
-    //     if current_nodes.iter().all(|(_, _, c)| *c == total_count) {
-    //         break;
-    //     }
-    // }
     let total = current_nodes
         .iter()
-        .map(|(n, curr_idx, curr_count)| {
-            let (node, idx, count) = travel_to_z(n, &nodes, &mut visited, &cmds, *curr_idx);
-            // println!("{n}-->{node} in {count} @ {idx}");
-            (node, idx, curr_count + count)
+        .map(|(n, curr_count)| {
+            let count = travel_to_z(n, &nodes, &cmds);
+            curr_count + count
         })
-        .fold(1, |acc, (_, _, count)| lcm(acc, count));
+        .fold(1, |acc, count| lcm(acc, count));
 
     Some(total)
 }
