@@ -13,54 +13,52 @@ F is a 90-degree bend connecting south and east.
 S is the starting position of the animal;
 */
 
-struct Pos<const STEP: usize>(usize, usize, usize, usize);
+struct Pos<const STEP: usize>(usize, usize);
 
 impl<const STEP: usize> Pos<STEP> {
-    fn next(&mut self, next_move: char) {
-        match next_move {
+    fn next(&mut self, step: char, board: &Vec<Vec<char>>) -> Option<char> {
+        match step {
             'N' => self.n(),
             'S' => self.s(),
             'E' => self.e(),
             'W' => self.w(),
             _ => panic!("No such move!"),
         };
+        let next_step = match (step, self.char_at(board)) {
+            ('N', '|') => 'N',
+            ('N', '7') => 'W',
+            ('N', 'F') => 'E',
+            ('E', 'J') => 'N',
+            ('E', '-') => 'E',
+            ('E', '7') => 'S',
+            ('W', '-') => 'W',
+            ('W', 'F') => 'S',
+            ('W', 'L') => 'N',
+            ('S', '|') => 'S',
+            ('S', 'J') => 'W',
+            ('S', 'L') => 'E',
+            (_, 'S') => return None,
+            (_, '*') => return None,
+            (_, _) => panic!("Weird step"),
+        };
+        Some(next_step)
     }
 
     fn char_at(&self, board: &Vec<Vec<char>>) -> char {
         board[self.0][self.1]
     }
 
-    fn n(&mut self) -> bool {
-        if self.0 >= STEP {
-            self.0 -= STEP;
-            true
-        } else {
-            false
-        }
+    fn n(&mut self) {
+        self.0 -= STEP;
     }
-    fn s(&mut self) -> bool {
-        if self.0 < self.3 - STEP {
-            self.0 += STEP;
-            true
-        } else {
-            false
-        }
+    fn s(&mut self) {
+        self.0 += STEP;
     }
-    fn e(&mut self) -> bool {
-        if self.1 < self.3 - STEP {
-            self.1 += STEP;
-            true
-        } else {
-            false
-        }
+    fn e(&mut self) {
+        self.1 += STEP;
     }
-    fn w(&mut self) -> bool {
-        if self.1 >= STEP {
-            self.1 -= STEP;
-            true
-        } else {
-            false
-        }
+    fn w(&mut self) {
+        self.1 -= STEP;
     }
 }
 
@@ -105,30 +103,14 @@ fn get_start_surrounding(board: &Vec<Vec<char>>, start: (usize, usize), step_siz
 fn walk_board(board: &Vec<Vec<char>>) -> u32 {
     let start = get_start(board);
     let mut next_step = get_start_surrounding(board, start, 1);
-    let mut start = Pos::<1>(start.0, start.1, board.len(), board[0].len());
+    let mut pos = Pos::<1>(start.0, start.1);
     let mut count = 0;
 
-    loop {
-        start.next(next_step);
+    while let Some(_next_step) = pos.next(next_step, board) {
+        next_step = _next_step;
         count += 1;
-        // println!("{}, {}", next_step, start.char_at(board));
-        next_step = match (next_step, start.char_at(board)) {
-            ('N', '|') => 'N',
-            ('N', '7') => 'W',
-            ('N', 'F') => 'E',
-            ('E', 'J') => 'N',
-            ('E', '-') => 'E',
-            ('E', '7') => 'S',
-            ('W', '-') => 'W',
-            ('W', 'F') => 'S',
-            ('W', 'L') => 'N',
-            ('S', '|') => 'S',
-            ('S', 'J') => 'W',
-            ('S', 'L') => 'E',
-            (_, 'S') => return count,
-            (_, _) => panic!("Weird step"),
-        };
     }
+    return count + 1;
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
@@ -139,97 +121,47 @@ pub fn part_one(input: &str) -> Option<u32> {
 
     Some(walk_board(&board) / 2)
 }
+
 /*
 1. expand board to allow squeezing
 1. mask out path
-2. perform fill on edges --> does not work!
-3. cound non zeroed chars */
-fn walk_board_fill(board: &mut Vec<Vec<char>>) -> u32 {
-    let start = get_start(board);
-    let mut next_step = get_start_surrounding(board, start, 2);
-    let mut start = Pos::<2>(start.0, start.1, board.len(), board[0].len());
-    let mut count = 0;
+2. perform fill on edges
+3. count non filled/path/padded chars */
 
-    match next_step {
-        'N' => board[start.0 - 1][start.1] = '*',
-        'E' => board[start.0][start.1 + 1] = '*',
-        'W' => board[start.0][start.1 - 1] = '*',
-        'S' => board[start.0 + 1][start.1] = '*',
+fn interpolate(board: &mut Vec<Vec<char>>, step: char, pos: &Pos<2>) {
+    match step {
+        'N' => board[pos.0 - 1][pos.1] = '*',
+        'E' => board[pos.0][pos.1 + 1] = '*',
+        'W' => board[pos.0][pos.1 - 1] = '*',
+        'S' => board[pos.0 + 1][pos.1] = '*',
         _ => (),
     };
+}
+fn walk_board_fill(board: &mut Vec<Vec<char>>) -> u32 {
+    let start = get_start(board);
+    let mut step = get_start_surrounding(board, start, 2);
+    let mut pos = Pos::<2>(start.0, start.1);
+    let mut count = 0;
+    let mut prev_pos = start;
 
-    loop {
-        board[start.0][start.1] = '*';
-        start.next(next_step);
+    interpolate(board, step, &pos);
+
+    while let Some(next_step) = pos.next(step, board) {
+        board[prev_pos.0][prev_pos.1] = '*';
+        prev_pos = (pos.0, pos.1);
+        step = next_step;
+        interpolate(board, next_step, &pos);
         count += 1;
-        // println!(
-        //     "{}, {} ({},{})",
-        //     next_step,
-        //     start.char_at(board),
-        //     start.0,
-        //     start.1
-        // );
-        next_step = match (next_step, start.char_at(board)) {
-            ('N', '|') => {
-                board[start.0 - 1][start.1] = '*';
-                'N'
-            }
-            ('N', '7') => {
-                board[start.0][start.1 - 1] = '*';
-                'W'
-            }
-            ('N', 'F') => {
-                board[start.0][start.1 + 1] = '*';
-                'E'
-            }
-            ('E', 'J') => {
-                board[start.0 - 1][start.1] = '*';
-                'N'
-            }
-            ('E', '-') => {
-                board[start.0][start.1 + 1] = '*';
-                'E'
-            }
-            ('E', '7') => {
-                board[start.0 + 1][start.1] = '*';
-                'S'
-            }
-            ('W', '-') => {
-                board[start.0][start.1 - 1] = '*';
-                'W'
-            }
-            ('W', 'F') => {
-                board[start.0 + 1][start.1] = '*';
-                'S'
-            }
-            ('W', 'L') => {
-                board[start.0 - 1][start.1] = '*';
-                'N'
-            }
-            ('S', '|') => {
-                board[start.0 + 1][start.1] = '*';
-                'S'
-            }
-            ('S', 'J') => {
-                board[start.0][start.1 - 1] = '*';
-                'W'
-            }
-            ('S', 'L') => {
-                board[start.0][start.1 + 1] = '*';
-                'E'
-            }
-            // (_, 'S') => return count,
-            (_, '*') => return count,
-            (_, _) => panic!("Weird step"),
-        };
     }
+    board[prev_pos.0][prev_pos.1] = '*';
+    return count + 1;
 }
 
 fn flood_fill(board: &mut Vec<Vec<char>>, x: usize, y: usize, x_lim: usize, y_lim: usize) {
-    if board[x][y] == 'O' || board[x][y] == '*' {
+    if board[x][y] == '*' || board[x][y] == ' ' {
         return;
     }
-    board[x][y] = 'O';
+    board[x][y] = ' ';
     if x > 0 {
         flood_fill(board, x - 1, y, x_lim, y_lim);
     }
@@ -260,7 +192,7 @@ fn count_inside(board: &Vec<Vec<char>>) -> u32 {
     let mut count = 0;
     for line in board.iter() {
         for &c in line {
-            if c != ' ' && c != '*' && c != 'O' {
+            if c != '~' && c != '*' && c != ' ' {
                 count += 1;
             }
         }
@@ -272,24 +204,20 @@ pub fn part_two(input: &str) -> Option<u32> {
         .lines()
         .flat_map(|line| {
             [
-                line.chars().flat_map(|c| [c, ' ']).collect::<Vec<char>>(),
-                repeat(' ').take(line.len() * 2).collect(),
+                line.chars().flat_map(|c| [c, '~']).collect::<Vec<char>>(),
+                repeat('~').take(line.len() * 2).collect(),
             ]
         })
         .collect::<Vec<Vec<char>>>();
-    // print_board(&board);
+
     walk_board_fill(&mut board);
-    // println!();
-    // println!();
-    // print_board(&board);
+
     fill_outside(&mut board);
-    // println!();
-    // println!();
-    // print_board(&board);
 
     Some(count_inside(&board))
 }
 
+#[allow(dead_code)]
 fn print_board(board: &Vec<Vec<char>>) {
     for line in board.iter() {
         println!("{}", line.iter().collect::<String>());
