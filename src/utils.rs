@@ -25,6 +25,11 @@ pub fn get_nums_from_line(input: &str) -> Vec<u64> {
     nums
 }
 
+pub fn print_grid(grid: &Vec<Vec<char>>) {
+    for line in grid {
+        println!("{}", line.iter().collect::<String>());
+    }
+}
 pub trait LinesExt<T> {
     fn numbers(&mut self) -> impl Iterator<Item = Vec<T>>;
 }
