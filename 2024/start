@@ -1,0 +1,2 @@
+#!/bin/sh
+cargo scaffold $1 && cargo download $1 && cargo read $1
