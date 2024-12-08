@@ -1,12 +1,14 @@
 advent_of_code::solution!(6);
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Tile {
     OutBounds,
     Blocked,
     Visited(usize),
     Empty,
 }
+use std::collections::HashSet;
+
 use Tile::*;
 
 impl Tile {
@@ -114,35 +116,42 @@ pub fn part_two(input: &str) -> Option<u32> {
         }
     }
 
+    let mut original_path = HashSet::new();
+
+    let mut guard = original_guard.clone();
+    loop {
+        if floor[guard.next_r()][guard.next_c()] == OutBounds {
+            break;
+        } else if floor[guard.next_r()][guard.next_c()] == Blocked {
+            guard.rotate();
+        } else {
+            guard.walk();
+            original_path.insert((guard.r, guard.c));
+        }
+    }
+
     let mut valid_loops = 0;
 
-    for ob_r in 1..floor.len() - 1 {
-        for ob_c in 1..floor[0].len() - 1 {
-            if floor[ob_r][ob_c] != Empty {
-                continue;
+    for (ob_r, ob_c) in original_path {
+        let mut new_floor = floor.clone();
+        new_floor[ob_r][ob_c] = Blocked;
+        let mut new_guard = original_guard.clone();
+        let mut looping = false;
+        loop {
+            if new_floor[new_guard.next_r()][new_guard.next_c()] == OutBounds {
+                break;
+            } else if new_floor[new_guard.next_r()][new_guard.next_c()] == Blocked {
+                new_guard.rotate();
+            } else if new_floor[new_guard.next_r()][new_guard.next_c()] == Visited(new_guard.dir) {
+                looping = true;
+                break;
+            } else {
+                new_guard.walk();
+                new_floor[new_guard.r][new_guard.c] = Visited(new_guard.dir);
             }
-            let mut new_floor = floor.clone();
-            new_floor[ob_r][ob_c] = Blocked;
-            let mut new_guard = original_guard.clone();
-            let mut looping = false;
-            loop {
-                if new_floor[new_guard.next_r()][new_guard.next_c()] == OutBounds {
-                    break;
-                } else if new_floor[new_guard.next_r()][new_guard.next_c()] == Blocked {
-                    new_guard.rotate();
-                } else if new_floor[new_guard.next_r()][new_guard.next_c()]
-                    == Visited(new_guard.dir)
-                {
-                    looping = true;
-                    break;
-                } else {
-                    new_guard.walk();
-                    new_floor[new_guard.r][new_guard.c] = Visited(new_guard.dir);
-                }
-            }
-            if looping {
-                valid_loops += 1;
-            }
+        }
+        if looping {
+            valid_loops += 1;
         }
     }
 
