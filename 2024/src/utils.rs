@@ -32,10 +32,16 @@ pub fn print_grid(grid: &Vec<Vec<char>>) {
 }
 pub trait LinesExt<T> {
     fn numbers(&mut self) -> impl Iterator<Item = Vec<T>>;
+
+    fn to_char_grid(self) -> Vec<Vec<char>>;
 }
 
 impl LinesExt<u64> for Lines<'_> {
     fn numbers(&mut self) -> impl Iterator<Item = Vec<u64>> {
         self.map(|line| get_nums_from_line(line))
+    }
+
+    fn to_char_grid(self) -> Vec<Vec<char>> {
+        self.map(|line| line.chars().collect()).collect()
     }
 }
