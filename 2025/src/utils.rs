@@ -65,8 +65,11 @@ impl Coord {
     }
 }
 
+#[derive(Clone)]
 pub struct Grid<T> {
-    grid: Vec<Vec<T>>,
+    grid: Vec<T>,
+    rows: usize,
+    cols: usize,
 }
 
 impl<T: Copy> Grid<T> {
@@ -74,28 +77,35 @@ impl<T: Copy> Grid<T> {
     where
         F: Fn(char) -> T,
     {
-        let grid = input
-            .lines()
-            .map(|line| line.chars().map(|c| transform(c)).collect())
+        let lines = input.lines();
+        let mut rows = 0;
+        let grid: Vec<T> = lines
+            .flat_map(|line| {
+                rows += 1;
+                line.chars().map(|c| transform(c))
+            })
             .collect();
-        Grid { grid }
+        let cols = grid.len() / rows;
+        Grid { grid, rows, cols }
     }
     pub fn coordinates(&self) -> Vec<(T, Coord)> {
         self.grid
             .iter()
             .enumerate()
-            .flat_map(|(r, line)| {
-                line.iter()
-                    .enumerate()
-                    .map(move |(c, item)| (*item, Coord(r, c)))
-            })
+            .map(|(idx, item)| (*item, Coord(idx / self.cols, idx % self.cols)))
             .collect()
     }
+    pub fn coordinates_iter(&self) -> impl Iterator<Item = (T, Coord)> {
+        self.grid
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| (*item, Coord(idx / self.cols, idx % self.cols)))
+    }
     pub fn rlim(&self) -> usize {
-        self.grid.len()
+        self.rows
     }
     pub fn clim(&self) -> usize {
-        self.grid[0].len()
+        self.cols
     }
     pub fn n(&self, coord: &Coord) -> Option<Coord> {
         let Coord(r, c) = coord;
@@ -173,10 +183,41 @@ impl<T: Copy> Grid<T> {
         }
         neighbours
     }
+    pub fn neighbours8_sat<F>(&self, coord: &Coord, predicate: F) -> usize
+    where
+        F: Fn(T) -> bool,
+    {
+        let mut count = 0;
+        if let Some(c) = self.n(coord) {
+            count += if predicate(self.at(&c)) { 1 } else { 0 };
+            if let Some(c2) = self.e(&c) {
+                count += if predicate(self.at(&c2)) { 1 } else { 0 };
+            }
+            if let Some(c2) = self.w(&c) {
+                count += if predicate(self.at(&c2)) { 1 } else { 0 };
+            }
+        }
+        if let Some(c) = self.e(coord) {
+            count += if predicate(self.at(&c)) { 1 } else { 0 };
+        }
+        if let Some(c) = self.s(coord) {
+            count += if predicate(self.at(&c)) { 1 } else { 0 };
+            if let Some(c2) = self.e(&c) {
+                count += if predicate(self.at(&c2)) { 1 } else { 0 };
+            }
+            if let Some(c2) = self.w(&c) {
+                count += if predicate(self.at(&c2)) { 1 } else { 0 };
+            }
+        }
+        if let Some(c) = self.w(coord) {
+            count += if predicate(self.at(&c)) { 1 } else { 0 };
+        }
+        count
+    }
     pub fn at(&self, coord: &Coord) -> T {
-        self.grid[coord.0][coord.1]
+        self.grid[coord.0 * self.cols + coord.1]
     }
     pub fn set(&mut self, coord: &Coord, item: T) {
-        self.grid[coord.0][coord.1] = item;
+        self.grid[coord.0 * self.cols + coord.1] = item;
     }
 }
