@@ -145,7 +145,38 @@ impl<T: Copy> Grid<T> {
         }
         neighbours
     }
+    pub fn neighbours8(&self, coord: &Coord) -> Vec<Coord> {
+        let mut neighbours = vec![];
+        if let Some(c) = self.n(coord) {
+            neighbours.push(c);
+            if let Some(c2) = self.e(&c) {
+                neighbours.push(c2);
+            }
+            if let Some(c2) = self.w(&c) {
+                neighbours.push(c2);
+            }
+        }
+        if let Some(c) = self.e(coord) {
+            neighbours.push(c)
+        }
+        if let Some(c) = self.s(coord) {
+            neighbours.push(c);
+            if let Some(c2) = self.e(&c) {
+                neighbours.push(c2);
+            }
+            if let Some(c2) = self.w(&c) {
+                neighbours.push(c2);
+            }
+        }
+        if let Some(c) = self.w(coord) {
+            neighbours.push(c)
+        }
+        neighbours
+    }
     pub fn at(&self, coord: &Coord) -> T {
         self.grid[coord.0][coord.1]
+    }
+    pub fn set(&mut self, coord: &Coord, item: T) {
+        self.grid[coord.0][coord.1] = item;
     }
 }
