@@ -3,6 +3,7 @@ use std::{
     str::Lines,
 };
 
+use itertools::Itertools;
 use nom::Err;
 
 fn get_next_num(input: &str) -> nom::IResult<&str, u64, (&str, nom::error::ErrorKind)> {
@@ -100,6 +101,28 @@ impl<T: Copy> Grid<T> {
                 line.chars().map(|c| transform(c))
             })
             .collect();
+        let cols = grid.len() / rows;
+        Grid { grid, rows, cols }
+    }
+    pub fn from_input_padded<F>(input: &str, transform: F) -> Grid<T>
+    where
+        F: Fn(char) -> T,
+    {
+        let lines = input.lines().collect_vec();
+        let max_len = lines.iter().map(|l| l.len()).max().unwrap();
+        let mut rows = 0;
+        let grid = lines
+            .iter()
+            .map(|l| {
+                let mut s = String::from(*l);
+                s.push_str(&" ".repeat(max_len - l.len()));
+                s
+            })
+            .flat_map(|line| {
+                rows += 1;
+                line.chars().map(|c| transform(c)).collect_vec()
+            })
+            .collect_vec();
         let cols = grid.len() / rows;
         Grid { grid, rows, cols }
     }

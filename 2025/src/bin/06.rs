@@ -31,18 +31,9 @@ pub fn part_two(input: &str) -> Option<u64> {
     let mut lines = input.lines().peekable();
     let rest = lines
         .peeking_take_while(|s| !s.starts_with('*') && !s.starts_with('+'))
-        .collect_vec();
-    let max_len = rest.iter().map(|l| l.len()).max().unwrap();
-    let rest = rest
-        .iter()
-        .map(|l| {
-            let mut s = String::from(*l);
-            s.push_str(&" ".repeat(max_len - l.len()));
-            s
-        })
         .join("\n");
     let operands = lines.next().unwrap().split_ascii_whitespace().collect_vec();
-    let grid = Grid::from_input(&rest, |c| c);
+    let grid = Grid::from_input_padded(&rest, |c| c);
 
     let mut acc = operands
         .iter()
