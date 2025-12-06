@@ -1,4 +1,7 @@
-use std::str::Lines;
+use std::{
+    fmt::{Debug, Display},
+    str::Lines,
+};
 
 use nom::Err;
 
@@ -72,6 +75,18 @@ pub struct Grid<T> {
     cols: usize,
 }
 
+impl<T: Copy + Display> Debug for Grid<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for r in 0..self.rlim() {
+            for c in 0..self.clim() {
+                f.write_fmt(format_args!("{}", self.at(&Coord(r, c))))?;
+            }
+            f.write_str("\n")?;
+        }
+        Ok(())
+    }
+}
+
 impl<T: Copy> Grid<T> {
     pub fn from_input<F>(input: &str, transform: F) -> Grid<T>
     where
@@ -141,17 +156,10 @@ impl<T: Copy> Grid<T> {
     }
     pub fn neighbours4(&self, coord: &Coord) -> Vec<Coord> {
         let mut neighbours = vec![];
-        if let Some(c) = self.n(coord) {
-            neighbours.push(c)
-        }
-        if let Some(c) = self.e(coord) {
-            neighbours.push(c)
-        }
-        if let Some(c) = self.s(coord) {
-            neighbours.push(c)
-        }
-        if let Some(c) = self.w(coord) {
-            neighbours.push(c)
+        for func in [Self::n, Self::e, Self::w, Self::s] {
+            if let Some(c) = func(self, coord) {
+                neighbours.push(c);
+            }
         }
         neighbours
     }
