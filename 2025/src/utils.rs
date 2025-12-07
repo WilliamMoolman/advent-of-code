@@ -71,9 +71,9 @@ impl Coord {
 
 #[derive(Clone)]
 pub struct Grid<T> {
-    grid: Vec<T>,
-    rows: usize,
-    cols: usize,
+    pub grid: Vec<T>,
+    pub rows: usize,
+    pub cols: usize,
 }
 
 impl<T: Copy + Display> Debug for Grid<T> {
@@ -185,6 +185,18 @@ impl<T: Copy> Grid<T> {
             }
         }
         neighbours
+    }
+    pub fn neighbours8_slice(&self, coord: &Coord) -> [Option<Coord>; 8] {
+        [
+            self.n(coord),
+            self.n(coord).and_then(|c| self.e(&c)),
+            self.e(coord),
+            self.s(coord).and_then(|c| self.e(&c)),
+            self.s(coord),
+            self.s(coord).and_then(|c| self.w(&c)),
+            self.w(coord),
+            self.n(coord).and_then(|c| self.w(&c)),
+        ]
     }
     pub fn neighbours8(&self, coord: &Coord) -> Vec<Coord> {
         let mut neighbours = vec![];

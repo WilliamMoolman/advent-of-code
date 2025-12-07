@@ -1,4 +1,6 @@
 use advent_of_code::utils::{Coord, Grid};
+use itertools::Itertools;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 advent_of_code::solution!(4);
 
@@ -6,7 +8,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     let grid = Grid::from_input(input, |c| c);
     let count = grid
         .coordinates()
-        .iter()
+        .par_iter()
         .filter(|(item, c)| {
             *item == '@'
                 && grid
@@ -22,29 +24,35 @@ pub fn part_one(input: &str) -> Option<u64> {
 
 pub fn part_two(input: &str) -> Option<u64> {
     let mut grid = Grid::from_input(input, |c| c);
-    let mut papers: Vec<Coord> = grid
+    let grid_items = grid
         .coordinates_iter()
-        .filter(|(item, _)| *item == '@')
-        .map(|(_, c)| c)
+        .map(|c| grid.neighbours8_sat(&c.1, |item| item == '@'))
+        .collect_vec();
+    let mut grid_with_nums = Grid {
+        grid: grid_items,
+        rows: grid.rows,
+        cols: grid.cols,
+    };
+    let mut total_removed = 0;
+    let mut to_go: Vec<Coord> = grid
+        .coordinates_iter()
+        .filter(|c| c.0 == '@')
+        .map(|c| c.1)
         .collect();
-    let total_papers = papers.len();
-    loop {
-        let mut to_remove = vec![];
-        papers.retain(|c| {
-            let rem = grid.neighbours8_sat(c, |c| c == '@') < 4;
-            if rem {
-                to_remove.push(c.clone());
-            }
-            !rem
-        });
-        if to_remove.len() == 0 {
-            break;
+    while let Some(coord) = to_go.pop() {
+        if grid_with_nums.at(&coord) >= 4 || grid.at(&coord) != '@' {
+            continue;
         }
-        for c in to_remove {
-            grid.set(&c, '.')
+        total_removed += 1;
+        grid.set(&coord, '.');
+        for n in grid.neighbours8_slice(&coord) {
+            if let Some(c) = n {
+                grid_with_nums.set(&c, grid_with_nums.at(&c) - 1);
+                to_go.push(c);
+            }
         }
     }
-    Some(total_papers as u64 - papers.len() as u64)
+    Some(total_removed as u64)
 }
 
 #[cfg(test)]
