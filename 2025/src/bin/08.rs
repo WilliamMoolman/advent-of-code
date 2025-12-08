@@ -190,15 +190,16 @@ fn dfs(
     while let Some(node) = to_visit.pop_front() {
         // network.insert(node);
         visited.insert(node);
-        for (i, neigh) in nets[node].iter().enumerate() {
-            if *neigh && nets[node][i] {
-                // nets[from][i] = true;
-                if i == to {
+        for neigh in 0..nets[node].len() {
+            if nets[node][neigh] {
+                nets[from][neigh] = true;
+                nets[neigh][from] = true;
+                if neigh == to {
                     return true;
                 }
 
-                if !visited.contains(&i) {
-                    to_visit.push_back(i);
+                if !visited.contains(&neigh) {
+                    to_visit.push_back(neigh);
                 }
             }
         }
