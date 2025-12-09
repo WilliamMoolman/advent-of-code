@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 mod day;
 pub mod template;
 
