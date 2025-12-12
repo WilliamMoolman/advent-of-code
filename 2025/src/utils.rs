@@ -37,6 +37,25 @@ pub fn print_grid(grid: &Vec<Vec<char>>) {
         );
     }
 }
+pub fn print_grid_bool(grid: &Vec<Vec<bool>>) {
+    for line in grid {
+        println!(
+            "{}",
+            line.iter()
+                .map(|b| if *b { "# " } else { ". " })
+                .collect::<String>()
+        );
+    }
+}
+pub fn print_grid_u8(grid: &Vec<Vec<u8>>) {
+    for line in grid {
+        println!(
+            "{}",
+            Itertools::intersperse(line.iter().map(|c| c.to_string()), String::from(" "))
+                .collect::<String>()
+        );
+    }
+}
 pub trait LinesExt<T> {
     fn numbers(&mut self) -> impl Iterator<Item = Vec<T>>;
 
